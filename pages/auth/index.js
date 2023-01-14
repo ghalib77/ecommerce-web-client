@@ -1,22 +1,34 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import classnames from "classnames";
 import TextInput from "../../components/textInput";
 import { registerForm, loginForm } from "../../constant/formField";
+import { login, register } from "../../utils/authHandler";
+import nookies from "nookies";
 
 export default function Authentication() {
   const [isRegister, setIsRegister] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({});
   const [error, setError] = useState({});
   const form = isRegister ? registerForm : loginForm;
 
-  const handleOnChange = (e) => {
-    const { value, name } = e.currentTarget;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+  const handleOnSubmit = async (e) => {
+    const formData = new FormData(e.currentTarget);
+    e.preventDefault();
+    setIsLoading(true);
+    setError({});
+
+    (isRegister ? register(formData, setError) : login(formData, setError))
+      .then((resp) => setFormData({}))
+      .catch((err) => {})
+      .finally(() => setIsLoading(false));
   };
 
-  const handleOnSubmit = (e) => {
-    e.preventDefault();
+  const handleOnChangeForm = (isRegister) => {
+    setError({});
+    setIsRegister(isRegister);
+    document.querySelectorAll("input").forEach((input) => {
+      input.value = "";
+    });
   };
 
   return (
@@ -44,10 +56,7 @@ export default function Authentication() {
                 "flex-auto tab",
                 !isRegister && "text-white"
               )}
-              onClick={() => {
-                setError({});
-                setIsRegister(false);
-              }}
+              onClick={() => handleOnChangeForm(false)}
             >
               Login
             </div>
@@ -56,23 +65,19 @@ export default function Authentication() {
                 "flex-auto tab",
                 isRegister && "text-white"
               )}
-              onClick={() => {
-                setError({});
-                setIsRegister(true);
-              }}
+              onClick={() => handleOnChangeForm(true)}
             >
               Register
             </div>
           </div>
 
           <form className="card-body" onSubmit={handleOnSubmit}>
-            {Object.entries(form).map(([key, value], index) => (
+            {form.map(({name, type}, index) => (
               <TextInput
                 error={error}
-                handleOnChange={handleOnChange}
-                name={key}
-                placeholder={value.placeholder}
-                type={value.type}
+                name={name}
+                placeholder={name}
+                type={type}
                 key={index}
               />
             ))}
